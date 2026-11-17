@@ -1,0 +1,1 @@
+[nudge] The run is not finished: a ticket is not Status: done, or make test fails. No human is available. Decide anything still open yourself, record assumptions in the ticket comments, and continue until every ticket is done and make lint and make test pass. Commit your work.

@@ -57,6 +57,68 @@ event-bus infrastructure.
     `SMS_EVENTS_AUTH_TOKEN` via django-configurations, uv git dep in
     `src/backend/pyproject.toml`) is part of the implementation task.
 
+## Webhook contract (binding)
+
+The package must keep the wire and data contract of the extras app unchanged,
+so the CMS plugin and existing consumers keep working.
+
+**Endpoint.** One view at `events/` inside the package URLconf, so with the
+documented include it is served at `/api/v1/events/`. It accepts `POST`
+(ingest) and `GET` (history, decision 7).
+
+**Authentication** (both methods, checked before anything else):
+
+| Condition | Status |
+|---|---|
+| `SMS_EVENTS_AUTH_TOKEN` unset or empty | 503 |
+| no `Authorization` header, or scheme is not `Bearer` | 401 |
+| bearer token differs from `SMS_EVENTS_AUTH_TOKEN` (constant-time compare) | 403 |
+
+DRF authentication and permission classes are not used for this view.
+
+**POST payload** (JSON object, all fields strings, all required):
+
+| Field | Meaning |
+|---|---|
+| `event_id` | unique id stamped by the plugin (a UUID); dedupe key, max 64 chars |
+| `event_type` | e.g. `course_published`; max 64 chars |
+| `occurred_at` | ISO 8601 datetime |
+| `course_key` | e.g. `course-v1:EPFL+DemoX+2025_T1`; max 255 chars |
+| `org`, `course`, `run` | parts of the course key; max 255 chars each |
+| `instance_name` | Open edX instance (tenant), e.g. `epfl`; max 64 chars |
+
+**POST behavior:**
+
+- Missing or empty `event_type`: 400, nothing stored.
+- `event_type == "course_published"`: validate all fields (any missing field or
+  unparseable `occurred_at` is 400, nothing stored), then store. A repeated
+  `event_id` stores nothing new and answers as if it had been stored, with the
+  existing row's `id`. Response 202, body
+  `{"status": "accepted", "id": <row id>, "event_id": ..., "event_type": ...}`.
+- Any other `event_type`: 202 `{"status": "accepted", "event_type": ...}`,
+  nothing stored (accepted as a no-op so the plugin does not retry).
+
+**GET behavior** (only when `OPENEDX_EVENTS_SERVE_HISTORY = True`, otherwise
+404 whatever the credentials): after authentication, 200 with a JSON list of
+events, newest `occurred_at` first, each item carrying `id`, `event_id`,
+`event_type`, `course_key`, `org`, `course`, `run`, `instance_name`,
+`occurred_at`, `received_at`. Optional query filters: `course_key` (exact),
+`instance_name` (case-insensitive), `event_type` (exact).
+
+**Model** `OpenedxEvent` (table `swissmooc_openedx_events_openedxevent`):
+the payload fields above (`event_id` unique, `occurred_at` a datetime) plus
+`received_at` set on insert. Default ordering newest `occurred_at` first.
+Its default manager provides the two query methods existing consumers call
+(extras' `course_xml_dump`):
+
+- `course_published_for_organisation(instance_name)`: all `course_published`
+  events of that instance, instance matched case-insensitively.
+- `latest_course_publish(course_key, instance_name)`: the newest
+  `course_published` event for that course and instance, or `None`.
+
+**Admin:** the package registers `OpenedxEvent` in the Django admin, read-only
+fields, searchable by course key, org, course, run, instance, and event id.
+
 ## Consequences
 
 - Distribution installs are git-only by tag; the PyPI name collision with the

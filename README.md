@@ -4,11 +4,9 @@ Reusable, pip-installable Django app that receives `course_published` webhooks
 from the [`platform-plugin-sms-events`](https://github.com/epfl-cede/platform-plugin-sms-events)
 CMS plugin and stores them in a durable, deduplicated event table.
 
-**Status: design only.** The design lives in
-`docs/adr/0001-extract-receiver-app-into-pip-package.md` — it records the
-settled decisions (scope, naming, migrations, gating) and the implementation
-task. Reference implementation:
-`swissmooc-extras/src/backend/apps/openedx_events/`.
+**Status: design only.** The spec is
+`docs/adr/0001-extract-receiver-app-into-pip-package.md` (settled decisions:
+scope, naming, migrations, gating).
 
 ## Install (once it exists)
 
@@ -21,5 +19,5 @@ taken by the upstream event-bus library):
 
 ## Consumers
 
-- swissmooc-extras — switches from its local `apps.openedx_events` (runbook in the ADR)
-- swissmooc-catalog — new consumer, storage only, GET history disabled
+- swissmooc-extras: switches from its local `apps.openedx_events` (runbook in the ADR)
+- swissmooc-catalog: new consumer, storage only, GET history disabled
