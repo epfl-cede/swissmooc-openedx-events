@@ -8,7 +8,7 @@ Read this file before invoking any skill.
 
 Several runs of this pipeline (one per VM) are compared afterwards, so every
 ref a run creates lives under its own namespace and never collides with
-another run's refs when the results are collected into one repo.
+another run's refs when pushed to the shared `bench` remote.
 
 - `RUN` is the suffix of the VM name: `RUN=$(hostname -s | sed 's/.*-//')`.
   It must be one of `glm`, `claude`, `kimi`, `deepseek`; otherwise stop and
@@ -19,6 +19,13 @@ another run's refs when the results are collected into one repo.
   repo tooling never picks them up).
 - Release tag: `$RUN/v0.1.0`, annotated, message
   "swissmooc-openedx-events v0.1.0 ($RUN run)".
+- Remotes: `origin` is the canonical repo and is read-only for the bench user
+  — never push to `origin`. The writable remote is `bench`
+  (`epfl-cede/swissmooc-openedx-events-bench`): push every `$RUN/*` ref
+  there.
+- Push cadence: after every ticket merge, push the integration branch
+  (`git push bench $RUN/extract-receiver`); push the annotated tag at the
+  end. A lost VM must never lose the run.
 - Never commit to `master`. Never create, move, or delete any branch or tag
   outside the `$RUN/` namespace (in particular, never create a bare `v0.1.0`
   tag: the canonical tag is cut later by a human from the chosen run).
@@ -60,23 +67,27 @@ the `implement-spec` workflow:
    the ticket's `## Comments`, continue.
 5. **Ticket closure**: set `Status: done` in the ticket file, append a
    `## Comments` entry naming the commit SHA(s) that resolved it. That is the
-   entire close ritual; no PR, no remote, no `gh` (this repo has none).
+   entire close ritual; no PR, no `gh`. Push the ticket branch and the
+   updated integration branch to `bench` after every ticket.
 6. **Definition of done for the whole pipeline**: all five ticket files
    (01-05) `Status: done`, `make test lint acceptance` green on
-   `$RUN/extract-receiver`, annotated tag `$RUN/v0.1.0` on its tip. Report
-   and stop.
+   `$RUN/extract-receiver`, annotated tag `$RUN/v0.1.0` on its tip, both
+   integration branch and tag pushed to `bench`. Report and stop.
 
 ## Hard rules (from repo AGENTS.md: restate, non-negotiable)
 
 - Never edit `docs/adr/0001-extract-receiver-app-into-pip-package.md` or
   anything under `bench/`.
 - Never read `bench/` for requirements.
-- The extras reference implementation is the separate checkout
-  `~/src/swissmooc-extras` (from the main checkout: `../swissmooc-extras`;
-  from a worktree, always use the absolute `~/src/swissmooc-extras`). The
-  module to port is `src/backend/apps/openedx_events/`. It is read-only:
+- Naming collision warning: the `bench` remote is not the `bench/` prompts
+  directory. `bench/` is never read or edited; the `bench` remote is where
+  `$RUN/*` refs are pushed.
+- The extras reference implementation is the checkout `~/src/swissmooc-extras`.
+  The module to port is `src/backend/apps/openedx_events/`. It is read-only:
   port semantics from it; never write to it, never commit in it, never copy
   files from it into this repo verbatim.
+- `~/src/swissmooc-catalog` is a read-only reference (future consumer,
+  context only): never write to it, never commit in it.
 - No other repo is touched: no catalog or extras wiring in this pipeline.
 - No emojis in code, docs, or CLI output.
 - No host Python/Node: build, lint, test run in Docker via the Makefile.

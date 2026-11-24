@@ -30,7 +30,7 @@ with no host Python or Node.
   module with the app in `INSTALLED_APPS`) proving the AppConfig installs.
 - One smoke test: app imports, AppConfig label is
   `swissmooc_openedx_events`.
-- `make lint` wired to something real (ruff is fine) via Docker.
+- `make lint` wired to something real (ruff and mypy are fine) via Docker.
 
 ## Out of scope
 
