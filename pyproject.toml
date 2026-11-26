@@ -1,0 +1,41 @@
+# swissmooc-openedx-events is installed git-only, pinned by SemVer tag:
+#
+#   "swissmooc-openedx-events @ git+https://github.com/epfl-cede/swissmooc-openedx-events.git@v0.1.0",
+#
+# It is never published to PyPI: the `openedx-events` name there belongs to
+# the upstream event-bus library, so this package keeps the `swissmooc-`
+# prefix instead.
+
+[project]
+name = "swissmooc-openedx-events"
+version = "0.1.0"
+description = "Standalone Django app that receives course_published webhooks and stores them"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "Django>=4.2",
+    "djangorestframework>=3.14",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["swissmooc_openedx_events"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.11",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+exclude = ["bench", ".scratch", ".agents", ".venv", "**/migrations"]
+
+[tool.mypy]
+python_version = "3.11"
+disable_error_code = ["import-untyped"]
+exclude = "migrations"
